@@ -15,7 +15,7 @@ AndroidX. Architecture note: `.claude/architecture.md`.
 
 ## Facts
 
-- Git: branch `main`, remote `origin` = private GitHub repo `mark-hahn/lock2` (ssh). The user makes the
+- Git: branch `main`, remote `origin` = public GitHub repo `mark-hahn/lock2` (ssh). The user makes the
   commits and pushes.
 - App label `Alarms`, package `com.hahnca.lock2` (kept from the project name), minSdk 34, built locally on this WSL box (SDK at `/root/Android/sdk`).
 - `./run` -> `./deploy`: builds the APK, installs it on the phone on adb, grants the notification,
