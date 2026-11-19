@@ -1,4 +1,4 @@
-package com.hahnca.lock2;
+package com.hahnca.alarms;
 
 import android.app.Activity;
 import android.app.Dialog;

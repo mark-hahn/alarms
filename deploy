@@ -5,7 +5,7 @@ set -euo pipefail
 trap 'echo; echo "====== ENDED ======"' EXIT
 
 SDK=/root/Android/sdk
-PACKAGE=com.hahnca.lock2
+PACKAGE=com.hahnca.alarms
 PS=/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe
 ATTACH_WAIT_S=15
 INSTALL_TIMEOUT_S=90  # the usb/ip link into wsl stalls on big transfers; the apk is ~20 KB

@@ -1,4 +1,4 @@
-package com.hahnca.lock2;
+package com.hahnca.alarms;
 
 import android.app.KeyguardManager;
 import android.app.Notification;

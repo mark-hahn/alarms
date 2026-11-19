@@ -1,11 +1,11 @@
 apply plugin: 'com.android.application'
 
 android {
-  namespace 'com.hahnca.lock2'
+  namespace 'com.hahnca.alarms'
   compileSdk 36
 
   defaultConfig {
-    applicationId 'com.hahnca.lock2'
+    applicationId 'com.hahnca.alarms'
     minSdk 34  // USE_EXACT_ALARM, POST_NOTIFICATIONS, and the USE_FULL_SCREEN_INTENT appop ./deploy sets
     targetSdk 36
     versionCode 1

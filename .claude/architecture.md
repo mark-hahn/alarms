@@ -1,9 +1,9 @@
-# lock2 architecture
+# alarms architecture
 
-Java classes in `app/src/main/java/com/hahnca/lock2/`, layouts `res/layout/main.xml` and `edit.xml`,
+Java classes in `app/src/main/java/com/hahnca/alarms/`, layouts `res/layout/main.xml` and `edit.xml`,
 app icon `res/drawable/ic_launcher.xml` (adaptive; vector clock in `ic_launcher_clock.xml`).
-The app is labelled "Alarms"; the package stays `com.hahnca.lock2` (changing it would install a
-second app and lose the alarms).
+The app is labelled "Alarms", package `com.hahnca.alarms` (renamed from `com.hahnca.lock2`; changing the
+package installs a second app and loses the alarms, since they live in the app's private prefs).
 No dependencies: framework `Activity`/`Dialog`/`Service` and `org.json`, so the APK is ~25 KB and
 installs over usbipd.
 
@@ -11,7 +11,7 @@ installs over usbipd.
 
 - **AlarmMath** — pure Java, no Android: `nextOccurrence(h, m, days, after)`, the keypad time entry
   (`typeDigit`, `backspace`, `show`), `hhmm`, `untilText` (the dialog's countdown), and the weekday labels shared by the list and the dialog
-  (`dayOrder`, `dayLabel`). Self-check: `java -ea app/src/main/java/com/hahnca/lock2/AlarmMath.java`.
+  (`dayOrder`, `dayLabel`). Self-check: `java -ea app/src/main/java/com/hahnca/alarms/AlarmMath.java`.
 - **Alarm** — one alarm (`id, name, h, m, days, enabled, at`) and the list, kept as JSON in
   SharedPreferences `alarms` / `list`; `load()` returns it sorted by time of day, equal times by id. `days` = bits `1 << (Calendar.DAY_OF_WEEK - 1)` (no day ticked =
   never rings, the time shows grey). `enabled` = the dialog's On/Off (JSON key `on`, absent in lists
@@ -86,6 +86,6 @@ when no alarm rings.
   remove a test alarm while the phone is locked: `am force-stop` first (the running app caches the
   prefs and would write the old list back), edit `shared_prefs/alarms.xml` through `run-as`, then
   `am start` the app so `restore()` re-arms.
-- Testing on the phone without touching it: debug build, so `adb shell run-as com.hahnca.lock2 cat
+- Testing on the phone without touching it: debug build, so `adb shell run-as com.hahnca.alarms cat
   shared_prefs/alarms.xml` reads the list; `uiautomator dump` gives button bounds for `input tap`.
 - No time-zone-change hook: `at` is an absolute instant. After travelling, edit the alarms.

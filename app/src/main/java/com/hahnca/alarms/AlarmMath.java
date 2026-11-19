@@ -1,10 +1,10 @@
-package com.hahnca.lock2;
+package com.hahnca.alarms;
 
 import java.text.DateFormatSymbols;
 import java.util.Calendar;
 import java.util.Locale;
 
-/** Pure alarm arithmetic, no Android. Self-check: java -ea app/src/main/java/com/hahnca/lock2/AlarmMath.java */
+/** Pure alarm arithmetic, no Android. Self-check: java -ea app/src/main/java/com/hahnca/alarms/AlarmMath.java */
 final class AlarmMath {
   /** Day bits: bit (Calendar.DAY_OF_WEEK - 1), so Sunday is bit 0. */
   static final int ALL_DAYS = 0x7f;

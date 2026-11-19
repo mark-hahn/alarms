@@ -1,4 +1,4 @@
-package com.hahnca.lock2;
+package com.hahnca.alarms;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
