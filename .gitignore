@@ -1,0 +1,9 @@
+.deployed
+.built-hash
+build/
+.gradle/
+local.properties
+*.apk
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/

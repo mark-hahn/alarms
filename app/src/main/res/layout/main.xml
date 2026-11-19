@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Two looks, one shown at a time by MainActivity.refresh(): "lock" over the lock screen while an
+     alarm rings (unchanged from the first version), "home" when the phone is unlocked. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="#000000" android:fitsSystemWindows="true">
+
+  <!-- Over the lock screen, only while an alarm rings: its name, the time, SNOOZE / STOP.
+       Tap anywhere stops the alarm. -->
+  <LinearLayout android:id="@+id/lock"
+      android:layout_width="match_parent" android:layout_height="match_parent"
+      android:orientation="vertical" android:padding="16dp" android:visibility="gone">
+
+    <TextView android:id="@+id/lockName"
+        android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+        android:gravity="center" android:textColor="#FFD54F" android:maxLines="2"
+        android:includeFontPadding="false"
+        android:autoSizeTextType="uniform" android:autoSizeMinTextSize="20sp"
+        android:autoSizeMaxTextSize="300sp" android:autoSizeStepGranularity="2sp" />
+
+    <TextClock
+        android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="3"
+        android:format12Hour="h:mm" android:format24Hour="HH:mm"
+        android:gravity="center" android:textColor="#FFFFFF" android:maxLines="1"
+        android:includeFontPadding="false"
+        android:autoSizeTextType="uniform" android:autoSizeMinTextSize="40sp"
+        android:autoSizeMaxTextSize="700sp" android:autoSizeStepGranularity="2sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="3"
+        android:orientation="vertical">
+      <Button android:id="@+id/lockSnooze"
+          android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+          android:layout_marginBottom="12dp" android:text="SNOOZE"
+          android:background="#FFB300" android:textColor="#000000"
+          android:autoSizeTextType="uniform" android:autoSizeMinTextSize="20sp"
+          android:autoSizeMaxTextSize="200sp" android:autoSizeStepGranularity="2sp" />
+      <Button android:id="@+id/lockStop"
+          android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+          android:text="STOP"
+          android:background="#D32F2F" android:textColor="#FFFFFF"
+          android:autoSizeTextType="uniform" android:autoSizeMinTextSize="20sp"
+          android:autoSizeMaxTextSize="200sp" android:autoSizeStepGranularity="2sp" />
+    </LinearLayout>
+  </LinearLayout>
+
+  <!-- Unlocked: alarm list, +, SNOOZE / STOP row, next alarm. -->
+  <LinearLayout android:id="@+id/home"
+      android:layout_width="match_parent" android:layout_height="match_parent"
+      android:orientation="vertical" android:padding="12dp" android:visibility="gone">
+
+    <ScrollView
+        android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+      <LinearLayout android:id="@+id/list"
+          android:layout_width="match_parent" android:layout_height="wrap_content"
+          android:orientation="vertical" />
+    </ScrollView>
+
+    <Button android:id="@+id/add"
+        android:layout_width="match_parent" android:layout_height="88dp"
+        android:layout_marginTop="12dp" android:text="+" android:textSize="56sp"
+        android:includeFontPadding="false"
+        android:background="#2E7D32" android:textColor="#FFFFFF" />
+
+    <LinearLayout
+        android:layout_width="match_parent" android:layout_height="120dp"
+        android:layout_marginTop="12dp" android:orientation="horizontal">
+      <Button android:id="@+id/snooze"
+          android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+          android:layout_marginEnd="12dp" android:text="SNOOZE" android:textSize="34sp"
+          android:background="#FFB300" android:textColor="#000000" />
+      <Button android:id="@+id/stop"
+          android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+          android:text="STOP" android:textSize="34sp"
+          android:background="#D32F2F" android:textColor="#FFFFFF" />
+    </LinearLayout>
+
+    <TextView android:id="@+id/next"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" android:gravity="center"
+        android:textColor="#FFD54F" android:textSize="30sp" android:maxLines="1" />
+  </LinearLayout>
+</FrameLayout>

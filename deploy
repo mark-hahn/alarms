@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# Build the APK and install it on the phone that is on adb. Skips whatever is already current.
+# Usage: ./deploy [phone-serial]   (the serial is needed only when several phones are on adb)
+set -euo pipefail
+trap 'echo; echo "====== ENDED ======"' EXIT
+
+SDK=/root/Android/sdk
+PACKAGE=com.hahnca.lock2
+PS=/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe
+ATTACH_WAIT_S=15
+INSTALL_TIMEOUT_S=90  # the usb/ip link into wsl stalls on big transfers; the apk is ~20 KB
+cd "$(dirname "$0")"
+
+hashed() { find "$@" -type f -print0 | sort -z | xargs -0 sha1sum | sha1sum | cut -c1-12; }
+HASH=$(hashed app/src app/build.gradle build.gradle settings.gradle gradle.properties)
+APK=app/build/outputs/apk/debug/app-debug.apk
+
+# --- apk
+if [[ -f .built-hash && $(cat .built-hash) == "$HASH" && -f $APK ]]; then
+  echo "== apk: up to date ($HASH)"
+else
+  echo "== apk: building $HASH"
+  if ! ANDROID_HOME=$SDK ./gradlew assembleDebug --console=plain -PsrcHash="$HASH" 2>&1 \
+      | grep --line-buffered -E 'BUILD|FAIL|wrong|error|\.java:|\.xml:'; then
+    echo "!! gradle build failed"
+    exit 1
+  fi
+  [[ -f $APK ]] || { echo "!! no apk at $APK"; exit 1; }
+  echo "$HASH" > .built-hash
+fi
+
+# --- phone
+phones() { adb devices | awk -F'\t' '$2 == "device" {print $1}'; }
+if [[ -z $(phones) ]]; then
+  echo "== no phone on adb, trying usbipd..."
+  BUSID=$("$PS" -NoProfile -Command "usbipd list" | tr -d '\r' | awk '/Shared/{print $1; exit}')
+  if [[ -z $BUSID ]]; then
+    echo "!! no phone on adb and none shared in usbipd (plug it in, then 'usbipd bind --busid <id>' once)"
+    exit 1
+  fi
+  "$PS" -NoProfile -Command "usbipd attach --wsl --busid $BUSID" >/dev/null
+  timeout $ATTACH_WAIT_S adb wait-for-usb-device || { echo "!! phone did not show up on adb after attach"; exit 1; }
+fi
+mapfile -t DEVS < <(phones)
+if [[ $# -ge 1 ]]; then
+  SERIAL=$1
+elif (( ${#DEVS[@]} == 1 )); then
+  SERIAL=${DEVS[0]}
+else
+  echo "!! phones on adb: ${DEVS[*]:-none} -- run './deploy <serial>' for the one to use"
+  exit 1
+fi
+echo "== phone: $(adb -s "$SERIAL" shell getprop ro.product.model | tr -d '\r') ($SERIAL)"
+
+installed() { adb -s "$SERIAL" shell dumpsys package $PACKAGE | tr -d '\r' | awk -F= '/versionName=/{print $2; exit}'; }
+if [[ $(installed) == "$HASH" ]]; then
+  echo "== phone: up to date ($HASH)"
+else
+  echo "== phone: installing"
+  timeout $INSTALL_TIMEOUT_S adb -s "$SERIAL" install -r $APK \
+    || { echo "!! adb install failed or timed out"; exit 1; }
+  [[ $(installed) == "$HASH" ]] || { echo "!! the phone does not report version $HASH after install"; exit 1; }
+  # Granted here so the app needs no permission screens: the alarm notification must be
+  # allowed to take over the lock screen, and the app to open over other apps.
+  adb -s "$SERIAL" shell pm grant $PACKAGE android.permission.POST_NOTIFICATIONS \
+    || { echo "!! could not grant POST_NOTIFICATIONS"; exit 1; }
+  adb -s "$SERIAL" shell appops set $PACKAGE USE_FULL_SCREEN_INTENT allow \
+    || { echo "!! could not allow USE_FULL_SCREEN_INTENT"; exit 1; }
+  # "Display over other apps": a ringing alarm opens the app over whatever app is showing.
+  adb -s "$SERIAL" shell appops set $PACKAGE SYSTEM_ALERT_WINDOW allow \
+    || { echo "!! could not allow SYSTEM_ALERT_WINDOW"; exit 1; }
+  # An app that was never started gets no BOOT_COMPLETED; this also re-arms the alarm after the install.
+  adb -s "$SERIAL" shell am start -n $PACKAGE/.MainActivity >/dev/null
+  echo "== phone: installed $HASH"
+fi
+
+printf '%s\n' app/src app/build.gradle build.gradle settings.gradle gradle.properties deploy run > .deployed

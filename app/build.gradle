@@ -1,0 +1,20 @@
+apply plugin: 'com.android.application'
+
+android {
+  namespace 'com.hahnca.lock2'
+  compileSdk 36
+
+  defaultConfig {
+    applicationId 'com.hahnca.lock2'
+    minSdk 34  // USE_EXACT_ALARM, POST_NOTIFICATIONS, and the USE_FULL_SCREEN_INTENT appop ./deploy sets
+    targetSdk 36
+    versionCode 1
+    // ./deploy passes the source hash, so it can ask the phone which build it has.
+    versionName project.findProperty('srcHash') ?: 'dev'
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+}

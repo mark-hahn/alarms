@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# claude3's Run button: build and install on the phone.
+exec "$(dirname "$0")/deploy" "$@"
