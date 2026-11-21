@@ -19,20 +19,28 @@ installs over usbipd.
   not re-arm it. `skipUntil` (JSON `skip`) = the special skip-next mode: set by a long-press on On to
   the ring that is due (`at`); `at` then moves to the first ring after it (`AlarmMath.nextRing`), so
   the skipped one never fires, and `isSkipping()` (= `skipUntil` still ahead) ends by itself once that
-  time has passed: nothing is written back, the alarm is simply On again. `at` = next ring in epoch ms (a snooze moves it). Every change
+  time has passed: nothing is written back, the alarm is simply On again. `at` = next ring in epoch ms (a snooze moves it). `snoozed` (JSON `snz`) = `at` is a snooze: the app's
+  snooze mode. Set by `snooze`, which keeps only ONE snoozed alarm (the earliest `at`; ties = first in list):
+  any later one is `reschedule()`d, i.e. back to its normal schedule; in practice that is only alarms that
+  rang together and were snoozed together. Cleared by `reschedule()` (so by every time/day/On/Off edit),
+  by `takeDue` (any alarm going off ends snooze mode: every snoozed alarm, the ringing one or another,
+  goes back to its schedule; SNOOZE on the ringing alarm restarts it) and by `restore` (its time passed
+  while the phone was off). Every change
   goes through `store()`, which also arms ONE system alarm (`setAlarmClock`) for the soonest `at`.
-  `add / update / delete / takeDue / snooze / restore`.
+  `add / update / delete / takeDue / snooze / anySnoozed / restore`.
 - **AlarmService** — started by that system alarm (`getForegroundService` PendingIntent).
   `takeDue` returns the due alarms and moves each on to its next day; their ids go into the static
   `sounding` set (`isRinging()`), a mediaPlayback foreground service plays a looping `USAGE_ALARM`
   ringtone and posts a full-screen-intent notification (Snooze / Stop actions). `snooze` re-arms the
   sounding alarms +10 min; `stop` just silences (they already moved on).
 - **MainActivity** — two looks in `main.xml`, picked each 1 s tick by `KeyguardManager.isKeyguardLocked()`:
-  - `lock` (over the lock screen, only while ringing): the ringing alarm's name (several due at once
+  - `lock` (over the lock screen, only while ringing or snoozed): the ringing alarm's name (several due at once
     are joined with ", "; hidden if unnamed), the big `TextClock`, stacked SNOOZE / STOP, and
-    nothing else (the user asked for exactly that); tap anywhere stops.
+    nothing else (the user asked for exactly that); tap anywhere stops. While only snoozed there is no name,
+    SNOOZE is dimmed and dead, and STOP is live: it ends the snooze (`Alarm.unsnooze`: the alarm goes back to
+    its schedule) and finishes the activity. Tap-anywhere still only stops a ringing alarm.
   - `home` (unlocked): scrolling alarm list, two lines per alarm (name + time; then Su..Sa with the
-    alarm's days bright and the others dim; an Off alarm's whole row is greyed out; a skipping alarm's text is all red (not greyed), and
+    alarm's days bright and the others dim; the snoozed alarm gets a third line, "Snoozed" in red; an Off alarm's whole row is greyed out; a skipping alarm's text is all red (not greyed), and
     `nextSkipEnd` makes the tick rebuild the list when the skipped time passes; tap a row: EditDialog), `+` (adds "New Alarm" at
     the next full hour, every day, and opens it), SNOOZE / STOP row (dimmed unless ringing), and the
     system-wide next alarm (`getNextAlarmClock`, so Clock-app alarms count; weekday when not today).
@@ -64,7 +72,11 @@ you land back on it, and touch-to-unlock clears the keyguard before the activity
 no "is it locked?" check catches that. So MainActivity finishes in `onStop()` unless ringing (the
 screen going off always stops it), after SNOOZE / STOP, when the alarm stops another way, and when it
 finds the keyguard locked with nothing ringing. Don't add anything that keeps it over the lock screen
-when no alarm rings.
+when no alarm rings, with ONE exception the user asked for, **snooze mode**: SNOOZE pressed while the
+keyguard is locked does not finish, and `refresh()` (`snoozing = locked && Alarm.anySnoozed`) keeps it up
+with FLAG_KEEP_SCREEN_ON until the alarm rings again, STOP (ends the snooze), or the screen is turned off (`onStop`
+finishes it, as always). Unlocking during a snooze just shows the `home` look (list with "Snoozed");
+Home / screen off then end it. SNOOZE pressed while unlocked still finishes (back to the app underneath).
 
 ## Gotchas
 
@@ -83,9 +95,10 @@ when no alarm rings.
 - Testing a ring over the lock screen: make a temp alarm in the UI a couple of minutes ahead,
   `input keyevent KEYCODE_SLEEP`, wait, `screencap`. Dump the UI (`uiautomator`) before every tap and
   never tap blind: a dialog left open swallows the next tap (it once deleted the wrong alarm). To
-  remove a test alarm while the phone is locked: `am force-stop` first (the running app caches the
+  add or remove a test alarm while the phone is locked: `am force-stop` first (the running app caches the
   prefs and would write the old list back), edit `shared_prefs/alarms.xml` through `run-as`, then
-  `am start` the app so `restore()` re-arms.
+  `am start` the app so `restore()` re-arms. Never keep a copy named `alarms.xml.bak` there: Android
+  takes it for its own atomic-write backup and restores it over your edit when the prefs load.
 - Testing on the phone without touching it: debug build, so `adb shell run-as com.hahnca.alarms cat
   shared_prefs/alarms.xml` reads the list; `uiautomator dump` gives button bounds for `input tap`.
 - No time-zone-change hook: `at` is an absolute instant. After travelling, edit the alarms.

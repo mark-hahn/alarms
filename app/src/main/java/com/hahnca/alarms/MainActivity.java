@@ -59,6 +59,8 @@ public class MainActivity extends Activity {
   private TextView next;
   private View snooze;
   private View stop;
+  private View lockSnooze;
+  private View lockStop;
   private LinearLayout list;
   private EditDialog dialog;
   private long nextSkipEnd;  // earliest end of a skip shown red in the list (0 = none); then rebuild it
@@ -79,8 +81,10 @@ public class MainActivity extends Activity {
     lock.setOnClickListener(v -> {
       if (AlarmService.isRinging()) command(AlarmService.STOP);
     });
-    findViewById(R.id.lockSnooze).setOnClickListener(v -> command(AlarmService.SNOOZE));
-    findViewById(R.id.lockStop).setOnClickListener(v -> command(AlarmService.STOP));
+    lockSnooze = findViewById(R.id.lockSnooze);
+    lockStop = findViewById(R.id.lockStop);
+    lockSnooze.setOnClickListener(v -> command(AlarmService.SNOOZE));
+    lockStop.setOnClickListener(v -> command(AlarmService.STOP));
     snooze.setOnClickListener(v -> command(AlarmService.SNOOZE));
     stop.setOnClickListener(v -> command(AlarmService.STOP));
     findViewById(R.id.add).setOnClickListener(v -> {
@@ -122,11 +126,21 @@ public class MainActivity extends Activity {
     super.onDestroy();
   }
 
-  /** Stops or snoozes the alarm and gets out of the way: back to the lock screen or the app underneath. */
+  /**
+   * Stops or snoozes the alarm and gets out of the way: back to the lock screen or the app underneath.
+   * Except a snooze over the lock screen: that stays up (snooze mode, see refresh), and there STOP
+   * (not ringing) ends the snooze and closes the screen.
+   */
   private void command(String action) {
-    if (!AlarmService.isRinging()) return;
+    if (!AlarmService.isRinging()) {
+      if (AlarmService.STOP.equals(action) && keyguard.isKeyguardLocked() && Alarm.anySnoozed(this)) {
+        Alarm.unsnooze(this);
+        finish();
+      }
+      return;
+    }
     startService(new Intent(this, AlarmService.class).setAction(action));
-    finish();
+    if (!(AlarmService.SNOOZE.equals(action) && keyguard.isKeyguardLocked())) finish();
   }
 
   private void edit(Alarm a) {
@@ -139,6 +153,7 @@ public class MainActivity extends Activity {
    * Two lines per alarm. First: name, then time (grey when no day is ticked, i.e. it never rings).
    * Second: the seven weekdays, the alarm's days bright and the others dim. A whole row is greyed
    * out when the alarm is Off; while it skips its next ring (long-press On) all its text is red.
+   * Third line, only for the snoozed alarm: "Snoozed" in red.
    */
   private void fillList() {
     list.removeAllViews();
@@ -170,6 +185,7 @@ public class MainActivity extends Activity {
       top.addView(time);
       row.addView(top);
       row.addView(daysLine(a.days, skipping ? SKIP_RED : DAY_ON));
+      if (a.snoozed) row.addView(text("Snoozed", 26, SKIP_RED));
       row.setOnClickListener(v -> edit(a));
       list.addView(row);
       View rule = new View(this);
@@ -196,8 +212,10 @@ public class MainActivity extends Activity {
   private void refresh() {
     boolean ringing = AlarmService.isRinging();
     boolean locked = keyguard.isKeyguardLocked();
+    // Snooze mode: over the lock screen it stays up, screen on, until the alarm rings again.
+    boolean snoozing = locked && Alarm.anySnoozed(this);
     // Stopped some other way (the notification's Stop), or over a locked phone with no alarm: leave.
-    if ((wasRinging && !ringing) || (!ringing && locked)) {
+    if (!ringing && !snoozing && (wasRinging || locked)) {
       finish();
       return;
     }
@@ -212,11 +230,11 @@ public class MainActivity extends Activity {
       lockName.setText(names);
       lockName.setVisibility(names.isEmpty() ? View.GONE : View.VISIBLE);
     }
-    snooze.setEnabled(ringing);
-    stop.setEnabled(ringing);
-    snooze.setAlpha(ringing ? 1 : DISABLED_ALPHA);
-    stop.setAlpha(ringing ? 1 : DISABLED_ALPHA);
-    if (ringing) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    live(snooze, ringing);  // dead unless ringing, except the lock look's STOP also ends a snooze
+    live(stop, ringing);
+    live(lockSnooze, ringing);
+    live(lockStop, ringing || snoozing);
+    if (ringing || snoozing) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
     // The system-wide next alarm, so alarms set in the Clock app show here too.
@@ -237,6 +255,11 @@ public class MainActivity extends Activity {
       if (AlarmService.sounding.contains(a.id) && !a.name.isEmpty()) names.add(a.name);
     }
     return TextUtils.join(", ", names);
+  }
+
+  private static void live(View b, boolean on) {
+    b.setEnabled(on);
+    b.setAlpha(on ? 1 : DISABLED_ALPHA);
   }
 
   private TextView text(String s, int sp, int color) {

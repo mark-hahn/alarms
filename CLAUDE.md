@@ -2,7 +2,10 @@
 
 Android alarm app: a list of alarms (name, 24-hour time, weekdays), each edited live in a pop-up.
 A ringing alarm takes over the lock screen (huge clock, big SNOOZE / STOP) or opens over whatever
-app is showing; otherwise it is a normal app and never sits over the lock screen. Plain Java, no
+app is showing; after a SNOOZE on the lock screen it stays up, screen on, until an alarm rings
+(which ends the snooze; SNOOZE restarts it) or STOP (live there) ends the snooze and closes it (the list
+shows "Snoozed" in red; only one alarm can be snoozed); otherwise it is a normal app and never
+sits over the lock screen. Plain Java, no
 AndroidX. Architecture note: `.claude/architecture.md`.
 
 ## Rules

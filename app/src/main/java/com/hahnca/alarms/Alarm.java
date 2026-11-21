@@ -29,6 +29,7 @@ final class Alarm {
   boolean enabled = true;  // Off: kept in the list but never rings
   long skipUntil;  // long-press On: the ring due at this time is skipped; On again once it has passed
   long at;   // next ring, epoch ms (a snooze moves it); 0 = never (off, or no days ticked)
+  boolean snoozed;  // `at` is a snooze; at most one alarm at a time (see snooze); ends when it rings or is rescheduled
 
   /** True from the long-press until the skipped ring's time has passed; then it is simply On again. */
   boolean isSkipping() {
@@ -36,6 +37,7 @@ final class Alarm {
   }
 
   void reschedule() {
+    snoozed = false;
     at = AlarmMath.nextRing(enabled, skipUntil, h, m, days, System.currentTimeMillis());
   }
 
@@ -57,6 +59,7 @@ final class Alarm {
         a.days = o.getInt("days");
         a.enabled = o.optBoolean("on", true);  // lists saved before On/Off existed have no "on"
         a.skipUntil = o.optLong("skip", 0);
+        a.snoozed = o.optBoolean("snz", false);
         a.at = o.getLong("at");
         list.add(a);
       }
@@ -75,7 +78,7 @@ final class Alarm {
       for (Alarm a : list) {
         arr.put(new JSONObject().put("id", a.id).put("name", a.name).put("h", a.h).put("m", a.m)
             .put("days", a.days).put("on", a.enabled).put("skip", a.skipUntil)
-            .put("at", a.at));
+            .put("snz", a.snoozed).put("at", a.at));
         if (a.at > 0 && (soonest == 0 || a.at < soonest)) soonest = a.at;
       }
     } catch (JSONException e) {
@@ -146,7 +149,7 @@ final class Alarm {
     store(c, list);
   }
 
-  /** The alarms due now, each already moved on to its next day. Called when the system alarm fires. */
+  /** The alarms due now, each already moved on to its next day; they end any snooze. Called when the system alarm fires. */
   static List<Alarm> takeDue(Context c) {
     long now = System.currentTimeMillis();
     List<Alarm> list = load(c);
@@ -154,15 +157,36 @@ final class Alarm {
     for (Alarm a : list) {
       if (a.at <= 0 || a.at > now + 1000) continue;
       due.add(a);
+      a.snoozed = false;
       a.at = AlarmMath.nextOccurrence(a.h, a.m, a.days, Math.max(now, a.at));
     }
+    // An alarm going off ends snooze mode: any other snoozed alarm goes back to its schedule.
+    // SNOOZE on the ringing alarm starts it again.
+    if (!due.isEmpty()) for (Alarm a : list) if (a.snoozed) a.reschedule();
     store(c, list);
     return due;
   }
 
+  /** True while an alarm is snoozed: the app's snooze mode. */
+  static boolean anySnoozed(Context c) {
+    for (Alarm a : load(c)) if (a.snoozed) return true;
+    return false;
+  }
+
+  /** Ends the snooze: the snoozed alarm goes back to its normal schedule. */
+  static void unsnooze(Context c) {
+    List<Alarm> list = load(c);
+    for (Alarm a : list) if (a.snoozed) a.reschedule();
+    store(c, list);
+  }
+
+  /** Snoozes {@code ids} until {@code until}. Only one alarm can be snoozed: the later ring goes back to its schedule. */
   static void snooze(Context c, Collection<Integer> ids, long until) {
     List<Alarm> list = load(c);
-    for (Alarm a : list) if (ids.contains(a.id)) a.at = until;
+    for (Alarm a : list) if (ids.contains(a.id)) { a.at = until; a.snoozed = true; }
+    Alarm keep = null;  // ties (alarms snoozed together) keep the first in list order
+    for (Alarm a : list) if (a.snoozed && (keep == null || a.at < keep.at)) keep = a;
+    for (Alarm a : list) if (a.snoozed && a != keep) a.reschedule();
     store(c, list);
   }
 
@@ -171,7 +195,11 @@ final class Alarm {
   static void restore(Context c) {
     long now = System.currentTimeMillis();
     List<Alarm> list = load(c);
-    for (Alarm a : list) if (a.enabled && a.at <= now) a.at = AlarmMath.nextOccurrence(a.h, a.m, a.days, now);
+    for (Alarm a : list) {
+      if (!a.enabled || a.at > now) continue;
+      a.at = AlarmMath.nextOccurrence(a.h, a.m, a.days, now);
+      a.snoozed = false;
+    }
     store(c, list);
   }
 }
