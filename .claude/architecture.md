@@ -40,13 +40,13 @@ installs over usbipd.
     SNOOZE is dimmed and dead, and STOP is live: it ends the snooze (`Alarm.unsnooze`: the alarm goes back to
     its schedule) and finishes the activity. Tap-anywhere still only stops a ringing alarm.
   - `home` (unlocked): scrolling alarm list, two lines per alarm (name + time; then Su..Sa with the
-    alarm's days bright and the others dim; the snoozed alarm gets a third line, "Snoozed" in red; an Off alarm's whole row is greyed out; a skipping alarm's text is all red (not greyed), and
+    alarm's days bright and the others dim; a skipping alarm gets a third line, "Skipping next.", and the snoozed alarm one, "Snoozed", both red; an Off alarm's whole row is greyed out; a skipping alarm's text is all red (not greyed), and
     `nextSkipEnd` makes the tick rebuild the list when the skipped time passes; tap a row: EditDialog), `+` (adds "New Alarm" at
     the next full hour, every day, and opens it), SNOOZE / STOP row (dimmed unless ringing), and the
     system-wide next alarm (`getNextAlarmClock`, so Clock-app alarms count; weekday when not today).
 - **EditDialog** — live edits, no save button: name (EditText that is only focusable after a
   tap), time (text; tap opens the dialog's own big keypad with a backspace key right of 0, entry rules in AlarmMath), day
-  checkboxes + All Days, a "Next alarm: h hrs and m mins" row ("1 hr", "1 min" in the singular) under the time (redrawn every second by
+  checkboxes + All Days, a "Next alarm: h hrs and m mins" row ("1 hr", "1 min" in the singular) under the time, with "Skipping next." in red above it while skipping (kept at full strength although the rest is dimmed: `showEnabled` dims body's children one by one; the tick calls it again when the skip ends, so Off button, note and dimming clear by themselves) (redrawn every second by
   a Handler tick from `onStart` to `onStop`; minutes round up like subtracting clock faces; "none"
   when Off or no day ticked; gray dashes while a typed time is unfinished), then a button row: On/Off (its label is the alarm's state; while Off the
   rest of the dialog is greyed out and inert via `setEnabledDeep`; tap toggles; a long-press, only

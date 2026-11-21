@@ -21,6 +21,12 @@
       android:layout_marginTop="8dp" android:gravity="center" android:padding="4dp"
       android:textSize="72sp" android:textStyle="bold" android:textColor="#FFD54F" />
 
+  <!-- Only while the alarm skips its next ring; kept at full strength when the body is greyed out. -->
+  <TextView android:id="@+id/skipping"
+      android:layout_width="match_parent" android:layout_height="wrap_content"
+      android:gravity="center" android:visibility="gone" android:text="Skipping next."
+      android:textSize="28sp" android:textStyle="bold" android:textColor="#FF5252" />
+
   <!-- How long until this alarm rings; gray dashes while a time is half typed. -->
   <TextView android:id="@+id/until"
       android:layout_width="match_parent" android:layout_height="wrap_content"

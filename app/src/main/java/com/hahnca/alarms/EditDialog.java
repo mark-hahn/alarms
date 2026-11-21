@@ -40,7 +40,8 @@ final class EditDialog extends Dialog {
   private final Activity activity;
   private final Alarm alarm;      // the dialog's copy; Alarm.update copies the edited fields back
   private final Runnable changed;  // refreshes the list behind
-  private final View body;        // everything above the button row
+  private final ViewGroup body;   // everything above the button row
+  private final View skipNote;    // "Skipping next." above the countdown
   private final Button power;
   private final EditText name;
   private final TextView time;
@@ -52,11 +53,13 @@ final class EditDialog extends Dialog {
   private final Runnable tick = new Runnable() {
     @Override
     public void run() {
+      if (alarm.isSkipping() != skipShown) showEnabled();  // the skipped ring's time has passed: On again
       showUntil();
       handler.postDelayed(this, TICK_MS);
     }
   };
   private boolean settingDays;     // mutes the checkbox listeners while All ticks them
+  private boolean skipShown;       // what showEnabled last drew; the tick redraws when the skip ends
 
   EditDialog(Activity activity, Alarm alarm, Runnable changed) {
     super(activity, android.R.style.Theme_Material_Dialog_NoActionBar);
@@ -68,6 +71,7 @@ final class EditDialog extends Dialog {
     getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
 
     body = findViewById(R.id.body);
+    skipNote = findViewById(R.id.skipping);
     power = findViewById(R.id.power);
     name = findViewById(R.id.name);
     time = findViewById(R.id.time);
@@ -176,11 +180,17 @@ final class EditDialog extends Dialog {
    */
   private void showEnabled() {
     boolean skipping = alarm.isSkipping();
+    skipShown = skipping;
     boolean on = alarm.enabled && !skipping;
     power.setText(on ? "On" : "Off");
     power.setBackgroundColor(on ? ON_BG : skipping ? SKIP_BG : OFF_BG);
     power.setTextColor(skipping ? SKIP_TEXT : Color.WHITE);
-    body.setAlpha(on ? 1 : OFF_ALPHA);
+    // Dim each child, not body: the "Skipping next." note must stay bright.
+    for (int i = 0; i < body.getChildCount(); i++) {
+      View c = body.getChildAt(i);
+      c.setAlpha(on || c == skipNote ? 1 : OFF_ALPHA);
+    }
+    skipNote.setVisibility(skipping ? View.VISIBLE : View.GONE);
     setEnabledDeep(body, on);
   }
 

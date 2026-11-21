@@ -153,7 +153,7 @@ public class MainActivity extends Activity {
    * Two lines per alarm. First: name, then time (grey when no day is ticked, i.e. it never rings).
    * Second: the seven weekdays, the alarm's days bright and the others dim. A whole row is greyed
    * out when the alarm is Off; while it skips its next ring (long-press On) all its text is red.
-   * Third line, only for the snoozed alarm: "Snoozed" in red.
+   * Third line, only for a skipping alarm ("Skipping next.") or the snoozed one ("Snoozed"): red.
    */
   private void fillList() {
     list.removeAllViews();
@@ -185,6 +185,7 @@ public class MainActivity extends Activity {
       top.addView(time);
       row.addView(top);
       row.addView(daysLine(a.days, skipping ? SKIP_RED : DAY_ON));
+      if (skipping) row.addView(text("Skipping next.", 26, SKIP_RED));
       if (a.snoozed) row.addView(text("Snoozed", 26, SKIP_RED));
       row.setOnClickListener(v -> edit(a));
       list.addView(row);
