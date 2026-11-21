@@ -80,6 +80,10 @@ Home / screen off then end it. SNOOZE pressed while unlocked still finishes (bac
 
 ## Gotchas
 
+- MainActivity (the only activity; EditDialog is a Dialog inside it) is locked to
+  `screenOrientation="portrait"` in the manifest: the user wants the app vertical in every situation
+  (it once opened in landscape from a phone lying on its side and stuck there). Don't add a second
+  activity without the same attribute.
 - Only alarms set in *this* app ring with these screens. Clock-app alarms show on the next-alarm
   line but ring with the Clock app's own screen: there is no API to take those over.
 - No volume-key handling (the user removed it).

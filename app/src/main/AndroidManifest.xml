@@ -11,8 +11,10 @@
 
   <application android:label="Alarms" android:icon="@drawable/ic_launcher"
       android:theme="@android:style/Theme.Material.NoActionBar">
-    <!-- showWhenLocked: drawn over the keyguard; turnScreenOn: wakes the screen when launched -->
+    <!-- showWhenLocked: drawn over the keyguard; turnScreenOn: wakes the screen when launched;
+         screenOrientation: always vertical, whatever way the phone is held -->
     <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTask"
+        android:screenOrientation="portrait"
         android:showWhenLocked="true" android:turnScreenOn="true">
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />
